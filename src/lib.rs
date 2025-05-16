@@ -407,7 +407,10 @@ impl Bindings {
     where
         P: AsRef<Path>,
     {
-        if self.write {
+        let skip_write = std::env::var("SKIP_WRITE").is_ok();
+        println!("cargo:rerun-if-env-changed=SKIP_WRITE");
+        if self.write && !skip_write {
+            // TODO mkdirs
             let out = std::path::Path::new(&self.out_dir).to_path_buf().join(out);
             println!("writing to {}", out.display());
             let mut file = std::fs::File::create(&out).expect(&format!("Create lib in {}", out.display()));
@@ -428,6 +431,8 @@ impl Bindings {
                 .expect("write to {out}");
                 file.write_all(&[b'\n']).expect("write to {out}");
             }
+        } else {
+            println!("skipping write");
         }
         Ok(())
     }
