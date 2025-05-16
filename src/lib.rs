@@ -62,6 +62,7 @@ impl Default for Builder {
 pub struct Bindings {
     write: bool,
     paths: Vec<PathBuf>,
+    out_dir: PathBuf,
 }
 
 fn default_kernels() -> Option<Vec<PathBuf>> {
@@ -148,15 +149,11 @@ impl Builder {
         self
     }
 
-    /// Modifies the output directory.
-    /// By default this is
-    /// [OUT_DIR](https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-build-scripts)
-    /// ```no_run
-    /// let builder = bindgen_cuda::Builder::default().out_dir("out/");
-    /// ```
-    pub fn out_dir<P: Into<PathBuf>>(mut self, out_dir: P) -> Self {
-        self.out_dir = out_dir.into();
-        self
+    /// Returns the standard build output directory path.
+    /// This is set by the [OUT_DIR](https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-build-scripts)
+    /// environment variable.
+    pub fn out_dir(&self) -> &PathBuf {
+        &self.out_dir
     }
 
     /// Sets up extra nvcc compile arguments.
@@ -398,6 +395,7 @@ impl Builder {
         Ok(Bindings {
             write,
             paths: self.kernel_paths,
+            out_dir,
         })
     }
 }
@@ -410,7 +408,9 @@ impl Bindings {
         P: AsRef<Path>,
     {
         if self.write {
-            let mut file = std::fs::File::create(out).expect("Create lib in {out}");
+            let out = std::path::Path::new(&self.out_dir).to_path_buf().join(out);
+            println!("writing to {}", out.display());
+            let mut file = std::fs::File::create(&out).expect(&format!("Create lib in {}", out.display()));
             for kernel_path in &self.paths {
                 let name = kernel_path
                     .file_stem()
